@@ -269,6 +269,35 @@ def history_detail(history_id):
         'status': 'success',
         'data': data
     })
+
+@app.route('/api/history/delete/<int:history_id>', methods=['DELETE'])
+def delete_history(history_id):
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+    
+    try: 
+        cursor = conn.cursor()
+        cursor.execute("SELECT image_id FROM classification_history WHERE id = %s", (history_id,)) 
+        row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'status': 'error', 'message': 'History tidak ditemukan'}), 404
+
+        image_id = row[0]
+
+        cursor.execute("DELETE FROM classification_history WHERE id = %s", (history_id,))
+        cursor.execute("DELETE FROM images WHERE id = %s", (image_id,))
+
+        conn.commit() 
+        return jsonify({'status': 'success', 'message': 'History berhasil dihapus'})
+
+    except Error as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()    
+
 @app.route('/api/quality-categories', methods=['GET'])
 def get_quality_categories():
     conn = get_db_connection()
